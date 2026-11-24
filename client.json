@@ -1,0 +1,269 @@
+{
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "http_clients": [
+    {
+      "tag": "direct-http",
+      "detour": "direct"
+    },
+    {
+      "tag": "proxy-http",
+      "detour": "🌐 默认代理"
+    }
+  ],
+  "dns": {
+    "servers": [
+      {
+        "type": "https",
+        "tag": "dns-remote",
+        "server": "1.1.1.1",
+        "detour": "🌐 默认代理"
+      },
+      {
+        "type": "https",
+        "tag": "dns-direct",
+        "server": "223.5.5.5",
+        "detour": "direct"
+      },
+      {
+        "type": "fakeip",
+        "tag": "dns-fakeip",
+        "inet4_range": "198.18.0.0/15"
+      }
+    ],
+    "rules": [
+      {
+        "rule_set": ["geosite-cn", "geosite-private"],
+        "server": "dns-direct"
+      },
+      {
+        "query_type": ["A", "AAAA"],
+        "server": "dns-fakeip"
+      }
+    ],
+    "final": "dns-remote",
+    "strategy": "ipv4_only"
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "address": ["172.19.0.1/30"],
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "mixed"
+    },
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 7890
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "🚀 前置优化机",
+      "outbounds": ["Relay-REALITY-Vision", "Relay-Hy2-Hopping"],
+      "default": "Relay-REALITY-Vision"
+    },
+    {
+      "type": "selector",
+      "tag": "🏠 纯净家宽出口",
+      "outbounds": ["Residential-ISP-Landing", "🚀 前置优化机"],
+      "default": "Residential-ISP-Landing"
+    },
+    {
+      "type": "selector",
+      "tag": "🤖 AI 平台",
+      "outbounds": ["🏠 纯净家宽出口", "🚀 前置优化机"],
+      "default": "🏠 纯净家宽出口"
+    },
+    {
+      "type": "selector",
+      "tag": "🎬 海外流媒体",
+      "outbounds": ["🏠 纯净家宽出口", "🚀 前置优化机"],
+      "default": "🏠 纯净家宽出口"
+    },
+    {
+      "type": "selector",
+      "tag": "🌐 默认代理",
+      "outbounds": ["🚀 前置优化机", "🏠 纯净家宽出口", "direct"],
+      "default": "🚀 前置优化机"
+    },
+    {
+      "type": "vless",
+      "tag": "Relay-REALITY-Vision",
+      "server": "198.51.100.10",
+      "server_port": 443,
+      "uuid": "00000000-0000-0000-0000-000000000001",
+      "flow": "xtls-rprx-vision",
+      "tls": {
+        "enabled": true,
+        "server_name": "addons.mozilla.org",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "short_id": "01234567"
+        }
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "Relay-Hy2-Hopping",
+      "server": "203.0.113.20",
+      "server_port": 8443,
+      "server_ports": ["20000:50000"],
+      "hop_interval": "30s",
+      "password": "REPLACE_WITH_YOUR_HY2_PASSWORD",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.bing.com",
+        "certificate_public_key_sha256": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        ]
+      }
+    },
+    {
+      "type": "shadowsocks",
+      "tag": "Residential-ISP-Landing",
+      "server": "12.34.56.78",
+      "server_port": 30001,
+      "method": "2022-blake3-aes-256-gcm",
+      "password": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "detour": "🚀 前置优化机"
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "action": "sniff"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
+      },
+      {
+        "ip_is_private": true,
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": "geosite-private",
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["geosite-openai", "geosite-anthropic", "geosite-gemini"],
+        "action": "route",
+        "outbound": "🤖 AI 平台"
+      },
+      {
+        "rule_set": ["geosite-netflix", "geosite-tiktok"],
+        "action": "route",
+        "outbound": "🎬 海外流媒体"
+      },
+      {
+        "rule_set": ["geosite-youtube", "geosite-telegram"],
+        "action": "route",
+        "outbound": "🌐 默认代理"
+      },
+      {
+        "rule_set": ["geosite-cn", "geoip-cn"],
+        "action": "route",
+        "outbound": "direct"
+      }
+    ],
+    "rule_set": [
+      {
+        "type": "remote",
+        "tag": "geosite-private",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-private.srs",
+        "http_client": "proxy-http"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+        "http_client": "proxy-http"
+      },
+      {
+        "type": "remote",
+        "tag": "geoip-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
+        "http_client": "proxy-http"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-openai",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-openai.srs",
+        "http_client": "proxy-http"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-anthropic",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-anthropic.srs",
+        "http_client": "proxy-http"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-gemini",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-google-gemini.srs",
+        "http_client": "proxy-http"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-netflix",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-netflix.srs",
+        "http_client": "proxy-http"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-tiktok",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-tiktok.srs",
+        "http_client": "proxy-http"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-youtube",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-youtube.srs",
+        "http_client": "proxy-http"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-telegram",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-telegram.srs",
+        "http_client": "proxy-http"
+      }
+    ],
+    "final": "🌐 默认代理",
+    "auto_detect_interface": true,
+    "default_domain_resolver": "dns-direct"
+  },
+  "experimental": {
+    "cache_file": {
+      "enabled": true,
+      "store_fakeip": true
+    }
+  }
+}
